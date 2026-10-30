@@ -1,0 +1,30 @@
+{
+  "system": "smart_livestock_monitoring_ai",
+  "behaviour_classification": {
+    "status": "available",
+    "prediction_rows": 521,
+    "model": "Random Forest",
+    "meaning": "Classifies behaviours represented in the training dataset. A predicted behaviour is not a health diagnosis."
+  },
+  "abnormal_activity_detection": {
+    "status": "available",
+    "anomaly_candidates": 542,
+    "model": "Isolation Forest",
+    "meaning": "Flags observations that differ from the grazing reference data. Unusual activity does not prove illness."
+  },
+  "estrus_associated_activity": {
+    "status": "available",
+    "candidate_observations": 5753,
+    "meaning": "Statistical activity deviations only; these are not confirmed estrus events."
+  },
+  "temperature": {
+    "status": "unavailable",
+    "unusual_change_observations": null,
+    "meaning": "Temperature analysis is unavailable until suitable temperature data are provided. A temperature trend alone is not a disease diagnosis."
+  },
+  "lameness": {
+    "status": "unavailable",
+    "meaning": "A dataset inventory does not establish that a validated lameness prediction model exists."
+  },
+  "overall_interpretation": "This is a research prototype. Missing module outputs are unavailable, not normal. Activity and behaviour flags are not veterinary diagnoses."
+}

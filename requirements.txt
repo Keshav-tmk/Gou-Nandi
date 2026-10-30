@@ -1,0 +1,15 @@
+# Smart Livestock Monitoring System - Verified Dependencies
+# Compatible with Python 3.12 (Recommended: Python 3.12.10)
+# Matches trained model serialization version (scikit-learn 1.9.1)
+
+fastapi==0.162.0
+uvicorn==0.54.0
+scikit-learn==1.9.1
+numpy==2.5.4
+scipy==1.18.1
+joblib==1.6.0
+pydantic==2.14.1
+requests==2.34.2
+httpx==0.28.1
+pytest==9.2.0
+python-dateutil==3.0.0

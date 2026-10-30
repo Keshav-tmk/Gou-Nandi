@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Smart Livestock Monitoring System — Real-time ESP32 collar telemetry and 5-module AI inference dashboard." />
+  <title>Smart Livestock Monitoring — AI & Telemetry Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles/dashboard.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐄</text></svg>" />
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon">🐄</span>
+        <div>
+          <h1 class="brand-title">Smart Livestock Monitoring</h1>
+          <span class="brand-sub">Real-Time ESP32 Collar Telemetry & 5-Module AI Inference</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Animal Selector -->
+        <div class="control-group">
+          <label for="cowSelect" class="control-label">Animal:</label>
+          <select id="cowSelect" class="select-input">
+            <option value="COW-001" selected>COW-001 (Lakshmi)</option>
+            <option value="COW-002">COW-002</option>
+            <option value="COW-003">COW-003</option>
+          </select>
+        </div>
+
+        <!-- Connection Pills -->
+        <div class="pill-group">
+          <div id="apiStatusPill" class="status-pill online" title="Backend API Connectivity">
+            <span class="status-dot"></span>
+            <span id="apiStatusText">API ONLINE</span>
+          </div>
+
+          <div id="hwStatusPill" class="status-pill waiting" title="ESP32 Collar Freshness">
+            <span class="status-dot"></span>
+            <span id="hwStatusText">WAITING FOR SENSOR</span>
+          </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="button-group">
+          <button id="themeToggleBtn" class="btn-theme" type="button" aria-label="Toggle light or dark theme" aria-pressed="false" title="Switch Light/Dark Theme">
+            <span id="themeIcon">☀️</span>
+            <span id="themeLabel">Light</span>
+          </button>
+
+          <button id="pollToggleBtn" class="btn-action" type="button" title="Pause or Resume Auto-Polling">
+            <span id="pollIcon">⏸️</span>
+            <span id="pollLabel">Pause</span>
+          </button>
+
+          <button id="refreshBtn" class="btn-action" type="button" title="Refresh Live Data Immediately">
+            <span>🔄</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-content">
+
+      <!-- Technical Warnings Bar (Hidden if empty) -->
+      <div id="technicalWarningsContainer" class="technical-warnings-container" style="display: none;"></div>
+
+      <!-- SECTION A: Live Sensor Summary -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">📡 Live Sensor Telemetry</h2>
+          <div class="header-meta">
+            <span id="freshnessBadge" class="freshness-badge waiting">Awaiting Packets</span>
+            <span id="lastUpdatedTime" class="meta-timestamp">--:--:--</span>
+          </div>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="telemetry-tile">
+            <div class="tile-label">Monitored Cow</div>
+            <div class="tile-value" id="targetCowId">COW-001</div>
+          </div>
+
+          <div class="telemetry-tile">
+            <div class="tile-label">Hardware Device</div>
+            <div class="tile-value" id="targetDeviceId">--</div>
+          </div>
+
+          <div class="telemetry-tile">
+            <div class="tile-label">Window Buffer</div>
+            <div class="tile-value">
+              <span id="windowProgressText">0 / 20</span>
+              <div class="mini-progress-bar">
+                <div id="windowProgressBar" class="progress-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="telemetry-tile">
+            <div class="tile-label">Contact Skin Temp</div>
+            <div class="tile-value"><span id="valTemp">--</span> <span class="unit">°C</span></div>
+          </div>
+
+          <div class="telemetry-tile col-span-2">
+            <div class="tile-label">Accelerometer (g)</div>
+            <div class="tile-values-row">
+              <div><span class="sub-label">X:</span> <strong id="valAx">--</strong></div>
+              <div><span class="sub-label">Y:</span> <strong id="valAy">--</strong></div>
+              <div><span class="sub-label">Z:</span> <strong id="valAz">--</strong></div>
+            </div>
+          </div>
+
+          <div class="telemetry-tile col-span-2">
+            <div class="tile-label">Gyroscope (deg/s)</div>
+            <div class="tile-values-row">
+              <div><span class="sub-label">X:</span> <strong id="valGx">--</strong></div>
+              <div><span class="sub-label">Y:</span> <strong id="valGy">--</strong></div>
+              <div><span class="sub-label">Z:</span> <strong id="valGz">--</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION B: Five AI Modules -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">🧠 Five-Module Real-Time AI Inference</h2>
+          <span class="meta-tag">10 Hz IMU Pipeline • Hardware RF & Isolation Forest</span>
+        </div>
+
+        <div class="ai-cards-grid">
+          
+          <!-- Module 1: Behaviour -->
+          <div class="ai-card" id="cardBehaviour">
+            <div class="ai-card-header">
+              <span class="ai-card-title">1. Behaviour</span>
+              <span id="behStatusBadge" class="status-tag neutral">Awaiting data</span>
+            </div>
+            <div class="ai-card-body">
+              <div class="ai-primary-display">
+                <span class="ai-icon" id="behIcon">🐄</span>
+                <span class="ai-main-text" id="behLabel">--</span>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Confidence</span>
+                <strong id="behConf">--</strong>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Model</span>
+                <span id="behModelVer" class="detail-val">Hardware RF</span>
+              </div>
+            </div>
+            <div class="ai-card-footer">
+              <span class="footer-time" id="behUpdated">Last inference: --</span>
+            </div>
+          </div>
+
+          <!-- Module 2: Anomaly Detection -->
+          <div class="ai-card" id="cardAnomaly">
+            <div class="ai-card-header">
+              <span class="ai-card-title">2. Anomaly Engine</span>
+              <span id="anomStatusBadge" class="status-tag neutral">Awaiting data</span>
+            </div>
+            <div class="ai-card-body">
+              <div class="ai-primary-display">
+                <span class="ai-icon" id="anomIcon">🛡️</span>
+                <span class="ai-main-text" id="anomBadge">Normal</span>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Decision Score</span>
+                <strong id="anomScore">--</strong>
+              </div>
+              <p class="ai-card-note" id="anomInterp">Routine grazing motion reference.</p>
+            </div>
+            <div class="ai-card-footer">
+              <span class="footer-time" id="anomUpdated">Last inference: --</span>
+            </div>
+          </div>
+
+          <!-- Module 3: Rumination Detection -->
+          <div class="ai-card" id="cardRumination">
+            <div class="ai-card-header">
+              <span class="ai-card-title">3. Rumination</span>
+              <span id="rumStatusBadge" class="status-tag neutral">Awaiting data</span>
+            </div>
+            <div class="ai-card-body">
+              <div class="ai-primary-display">
+                <span class="ai-icon" id="rumIcon">🌾</span>
+                <span class="ai-main-text" id="rumLabel">--</span>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Chewing Rhythm</span>
+                <strong id="rumScore">--</strong>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Probability</span>
+                <strong id="rumProb">--</strong>
+              </div>
+            </div>
+            <div class="ai-card-footer">
+              <span class="footer-time" id="rumUpdated">Last inference: --</span>
+            </div>
+          </div>
+
+          <!-- Module 4: Estrus Surveillance -->
+          <div class="ai-card" id="cardEstrus">
+            <div class="ai-card-header">
+              <span class="ai-card-title">4. Estrus / Heat</span>
+              <span id="estrusStatusBadge" class="status-tag neutral">Awaiting data</span>
+            </div>
+            <div class="ai-card-body">
+              <div class="ai-primary-display">
+                <span class="ai-icon" id="estrusIcon">🔍</span>
+                <span class="ai-main-text" id="estrusRisk">LOW RISK</span>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Mounting Status</span>
+                <strong id="estrusMount">No mounts</strong>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Dynamic Surge</span>
+                <strong id="estrusSurge">--</strong>
+              </div>
+            </div>
+            <div class="ai-card-footer">
+              <span class="footer-time" id="estrusUpdated">Last inference: --</span>
+            </div>
+          </div>
+
+          <!-- Module 5: Lameness & Thermal -->
+          <div class="ai-card" id="cardLameness">
+            <div class="ai-card-header">
+              <span class="ai-card-title">5. Locomotion & Temp</span>
+              <span id="lameStatusBadge" class="status-tag neutral">Awaiting data</span>
+            </div>
+            <div class="ai-card-body">
+              <div class="ai-primary-display">
+                <span class="ai-icon" id="lameIcon">🦵</span>
+                <span class="ai-main-text" id="lameScore">Score -- / 5.0</span>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Temperature Status</span>
+                <strong id="tempStatus">--</strong>
+              </div>
+              <div class="ai-detail-row">
+                <span class="detail-label">Gait Asymmetry</span>
+                <strong id="lameAsym">--</strong>
+              </div>
+            </div>
+            <div class="ai-card-footer">
+              <span class="footer-time" id="lameUpdated">Last inference: --</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SECTION C: Live Movement Chart -->
+      <section class="section-card">
+        <div class="section-header">
+          <div class="chart-header-title">
+            <h2 class="section-title">📈 Live Collar Motion Waveform</h2>
+            <div class="waveform-legend">
+              <span class="legend-item"><span class="legend-dot color-x"></span> Accel X (Lateral)</span>
+              <span class="legend-item"><span class="legend-dot color-y"></span> Accel Y (Dorso-Ventral)</span>
+              <span class="legend-item"><span class="legend-dot color-z"></span> Accel Z (Cranio-Caudal)</span>
+            </div>
+          </div>
+          <span class="meta-tag">Rolling 50 Samples (±2.5g range)</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sensorWaveformCanvas" class="waveform-canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- SECTION D: Alerts (Quiet by default) -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">🚨 Active Livestock Alerts</h2>
+          <span id="alertsSummaryCount" class="alerts-count-badge">0 Active</span>
+        </div>
+
+        <div id="alertsContainer" class="alerts-wrapper">
+          <div id="noAlertsBanner" class="alerts-quiet-banner">
+            <span class="quiet-icon">✓</span>
+            <div>
+              <strong>0 Active Animal Alerts</strong>
+              <p class="quiet-desc">No confirmed anomalies, estrus surges, fever conditions, or gait irregularities detected.</p>
+            </div>
+          </div>
+          <div id="activeAlertsList" class="active-alerts-list" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- SECTION E: Prediction History Audit Trail -->
+      <section class="section-card">
+        <div class="section-header">
+          <h2 class="section-title">📜 5-Module Prediction Audit History</h2>
+          <span class="meta-tag">Bounded Recent Window</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Behaviour</th>
+                <th>Anomaly</th>
+                <th>Rumination</th>
+                <th>Estrus Risk</th>
+                <th>Locomotion & Temp</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr>
+                <td colspan="6" class="table-empty-cell">
+                  Awaiting sensor telemetry and inference cycles...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>Smart Livestock Monitoring System — Phase 2 Hardware Telemetry & Real-Time AI Inference</div>
+      <div class="footer-meta">Python 3.12 | FastAPI | Scikit-learn 1.9.1 | ESP32 MPU-6050 & DS18B20</div>
+    </footer>
+
+  </div>
+
+  <!-- Dashboard JavaScript Client -->
+  <script src="/static/components/dashboard.js"></script>
+</body>
+</html>

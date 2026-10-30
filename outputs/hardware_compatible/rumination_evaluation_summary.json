@@ -1,0 +1,56 @@
+{
+  "model_type": "RandomForestClassifier",
+  "task": "binary_rumination_detection",
+  "feature_count": 72,
+  "classes": [
+    "not_ruminating",
+    "ruminating"
+  ],
+  "cv_accuracy": 0.9272,
+  "cv_precision": 0.6923,
+  "cv_recall": 0.6316,
+  "cv_f1": 0.6606,
+  "cv_roc_auc": 0.9576,
+  "confusion_matrix": [
+    [
+      435,
+      16
+    ],
+    [
+      21,
+      36
+    ]
+  ],
+  "classification_report": {
+    "not_ruminating": {
+      "precision": 0.9539473684210527,
+      "recall": 0.9645232815964523,
+      "f1-score": 0.9592061742006616,
+      "support": 451.0
+    },
+    "ruminating": {
+      "precision": 0.6923076923076923,
+      "recall": 0.631578947368421,
+      "f1-score": 0.6605504587155964,
+      "support": 57.0
+    },
+    "accuracy": 0.9271653543307087,
+    "macro avg": {
+      "precision": 0.8231275303643725,
+      "recall": 0.7980511144824367,
+      "f1-score": 0.8098783164581289,
+      "support": 508.0
+    },
+    "weighted avg": {
+      "precision": 0.9245901606681756,
+      "recall": 0.9271653543307087,
+      "f1-score": 0.9256955919513531,
+      "support": 508.0
+    }
+  },
+  "sample_count": 508,
+  "positive_support": 57,
+  "negative_support": 451,
+  "trained_at": "2026-10-29T02:26:24.020858+00:00",
+  "version": "1.0.0-hardware"
+}

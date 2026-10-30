@@ -1,0 +1,92 @@
+/* ============================================================
+   SmartLivestock AI — LivePulseECG Stylesheet
+   ============================================================ */
+
+.live-ecg-card {
+  position: relative;
+  background: radial-gradient(circle at 50% 30%, #0F1A2E 0%, #0B1220 100%);
+  border: 1px solid rgba(57, 255, 20, 0.22);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 25px -5px rgba(57, 255, 20, 0.08);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.live-ecg-card.anomaly-active {
+  border-color: rgba(255, 61, 61, 0.45);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 30px -5px rgba(255, 61, 61, 0.2);
+}
+
+.live-ecg-hud {
+  pointer-events: none;
+}
+
+.live-ecg-interactive {
+  pointer-events: auto;
+}
+
+.ecg-channel-btn {
+  background: rgba(15, 26, 46, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94A3B8;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.ecg-channel-btn:hover {
+  background: rgba(57, 255, 20, 0.12);
+  color: #39FF14;
+  border-color: rgba(57, 255, 20, 0.35);
+}
+
+.ecg-channel-btn.active {
+  background: rgba(57, 255, 20, 0.2);
+  color: #39FF14;
+  border-color: #39FF14;
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.3);
+}
+
+.ecg-channel-btn.active.anomaly {
+  background: rgba(255, 61, 61, 0.2);
+  color: #FF3D3D;
+  border-color: #FF3D3D;
+  box-shadow: 0 0 10px rgba(255, 61, 61, 0.3);
+}
+
+@keyframes ecgPulseBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 8px #39FF14;
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.85);
+    box-shadow: 0 0 2px #39FF14;
+  }
+}
+
+.ecg-live-dot {
+  animation: ecgPulseBlink 1.2s infinite ease-in-out;
+}
+
+@keyframes ecgAnomalyBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1.1);
+    box-shadow: 0 0 12px #FF3D3D;
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+    box-shadow: 0 0 3px #FF3D3D;
+  }
+}
+
+.ecg-anomaly-dot {
+  animation: ecgAnomalyBlink 0.8s infinite ease-in-out;
+}

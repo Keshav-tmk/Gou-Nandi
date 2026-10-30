@@ -1,0 +1,38 @@
+# Environments & VirtualEnvs
+.venv/
+.venv312/
+venv/
+env/
+ENV/
+*.env
+!.env.example
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime Telemetry Data & Logs
+data/live_collar_telemetry.jsonl
+data/downloads/*.zip
+logs/
+*.log
+
+# IDE & OS Specific
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp

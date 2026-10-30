@@ -1,0 +1,58 @@
+{
+  "estrus_heat": {
+    "dataset": "estrus_heat_analysis_daily.csv",
+    "rows": 49116,
+    "unique_cows": 189,
+    "positive_oestrus_days": 331,
+    "positive_rate_pct": 0.674,
+    "features_used": 67,
+    "split": "80/20 grouped by cow; cows in test not used for fitting",
+    "test_accuracy_pct": 99.26,
+    "test_balanced_accuracy_pct": 54.3,
+    "test_precision_pct": 40.0,
+    "test_recall_pct": 8.7,
+    "test_f1_pct": 14.29,
+    "test_roc_auc": 0.9263,
+    "test_average_precision": 0.2718,
+    "confusion_matrix_tn_fp_fn_tp": [
+      9598,
+      9,
+      63,
+      6
+    ],
+    "interpretation": "High accuracy is driven by class imbalance. The model misses most estrus-positive days at the default 0.5 threshold, so it is not yet suitable for reliable heat alerts."
+  },
+  "lameness": {
+    "dataset": "lameness_analysis_daily.csv",
+    "rows": 98021,
+    "unique_cows": 386,
+    "positive_lameness_days": 134,
+    "positive_rate_pct": 0.137,
+    "features_used": 67,
+    "split": "80/20 grouped by cow; cows in test not used for fitting",
+    "test_accuracy_pct": 99.86,
+    "test_balanced_accuracy_pct": 50.0,
+    "test_precision_pct": 0.0,
+    "test_recall_pct": 0.0,
+    "test_f1_pct": 0.0,
+    "test_roc_auc": 0.9033,
+    "test_average_precision": 0.1563,
+    "confusion_matrix_tn_fp_fn_tp": [
+      18451,
+      0,
+      26,
+      0
+    ],
+    "interpretation": "The model predicted every test observation as non-lameness at the default 0.5 threshold. Despite high accuracy and ROC-AUC, it failed to detect any positive cases at this threshold."
+  },
+  "methodology": {
+    "model": "RandomForestClassifier with class_weight='balanced_subsample', median imputation, 400 trees",
+    "leakage_controls": "Excluded cow IDs, dates, target labels, other event labels, episode IDs, and days-to/since-event columns.",
+    "important_limitations": [
+      "These datasets are daily activity/behaviour summaries, not raw MPU-6050 accelerometer/gyroscope data.",
+      "Models trained on these files do not directly accept raw MPU-6050 readings; a sensor-compatible feature pipeline and labelled data collection/retraining are needed.",
+      "Results are a baseline evaluation only. Threshold tuning should use validation cows, then be evaluated once on held-out test cows.",
+      "Do not describe the predictions as veterinary diagnosis."
+    ]
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "model_id": "cow_behaviour_hardware_rf",
+  "version": "1.0.0",
+  "model_type": "RandomForestClassifier",
+  "created_at": "2026-10-28T16:12:47.944629+00:00",
+  "input_feature_count": 72,
+  "feature_names": [
+    "accel_x_mean",
+    "accel_x_std",
+    "accel_x_min",
+    "accel_x_max",
+    "accel_x_range",
+    "accel_x_rms",
+    "accel_x_diff_std",
+    "accel_x_abs_diff_mean",
+    "accel_y_mean",
+    "accel_y_std",
+    "accel_y_min",
+    "accel_y_max",
+    "accel_y_range",
+    "accel_y_rms",
+    "accel_y_diff_std",
+    "accel_y_abs_diff_mean",
+    "accel_z_mean",
+    "accel_z_std",
+    "accel_z_min",
+    "accel_z_max",
+    "accel_z_range",
+    "accel_z_rms",
+    "accel_z_diff_std",
+    "accel_z_abs_diff_mean",
+    "gyro_x_mean",
+    "gyro_x_std",
+    "gyro_x_min",
+    "gyro_x_max",
+    "gyro_x_range",
+    "gyro_x_rms",
+    "gyro_x_diff_std",
+    "gyro_x_abs_diff_mean",
+    "gyro_y_mean",
+    "gyro_y_std",
+    "gyro_y_min",
+    "gyro_y_max",
+    "gyro_y_range",
+    "gyro_y_rms",
+    "gyro_y_diff_std",
+    "gyro_y_abs_diff_mean",
+    "gyro_z_mean",
+    "gyro_z_std",
+    "gyro_z_min",
+    "gyro_z_max",
+    "gyro_z_range",
+    "gyro_z_rms",
+    "gyro_z_diff_std",
+    "gyro_z_abs_diff_mean",
+    "accel_magnitude_mean",
+    "accel_magnitude_std",
+    "accel_magnitude_min",
+    "accel_magnitude_max",
+    "accel_magnitude_range",
+    "accel_magnitude_rms",
+    "accel_magnitude_diff_std",
+    "accel_magnitude_abs_diff_mean",
+    "dynamic_acceleration_mean",
+    "dynamic_acceleration_std",
+    "dynamic_acceleration_min",
+    "dynamic_acceleration_max",
+    "dynamic_acceleration_range",
+    "dynamic_acceleration_rms",
+    "dynamic_acceleration_diff_std",
+    "dynamic_acceleration_abs_diff_mean",
+    "gyro_magnitude_mean",
+    "gyro_magnitude_std",
+    "gyro_magnitude_min",
+    "gyro_magnitude_max",
+    "gyro_magnitude_range",
+    "gyro_magnitude_rms",
+    "gyro_magnitude_diff_std",
+    "gyro_magnitude_abs_diff_mean"
+  ],
+  "classes": [
+    "active_mount",
+    "grazing",
+    "head_nodding",
+    "resting",
+    "walking"
+  ],
+  "train_rows": 1114,
+  "test_rows": 521,
+  "train_source_files": 311,
+  "test_source_files": 104,
+  "test_accuracy": 0.9289827255278311,
+  "test_macro_f1": 0.8526303987093764,
+  "test_weighted_f1": 0.9299249064500917,
+  "per_class_metrics": {
+    "active_mount": {
+      "precision": 0.7857142857142857,
+      "recall": 0.8461538461538461,
+      "f1-score": 0.8148148148148148,
+      "support": 13.0
+    },
+    "grazing": {
+      "precision": 0.9745762711864406,
+      "recall": 0.9478021978021978,
+      "f1-score": 0.9610027855153204,
+      "support": 364.0
+    },
+    "head_nodding": {
+      "precision": 0.6923076923076923,
+      "recall": 0.6428571428571429,
+      "f1-score": 0.6666666666666666,
+      "support": 14.0
+    },
+    "resting": {
+      "precision": 0.9767441860465116,
+      "recall": 1.0,
+      "f1-score": 0.9882352941176471,
+      "support": 42.0
+    },
+    "walking": {
+      "precision": 0.7938144329896907,
+      "recall": 0.875,
+      "f1-score": 0.8324324324324325,
+      "support": 88.0
+    },
+    "accuracy": 0.9289827255278311,
+    "macro avg": {
+      "precision": 0.8446313736489242,
+      "recall": 0.8623626373626372,
+      "f1-score": 0.8526303987093764,
+      "support": 521.0
+    },
+    "weighted avg": {
+      "precision": 0.9319218465172823,
+      "recall": 0.9289827255278311,
+      "f1-score": 0.9299249064500917,
+      "support": 521.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      11,
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      0,
+      345,
+      1,
+      0,
+      18
+    ],
+    [
+      2,
+      0,
+      9,
+      1,
+      2
+    ],
+    [
+      0,
+      0,
+      0,
+      42,
+      0
+    ],
+    [
+      1,
+      9,
+      1,
+      0,
+      77
+    ]
+  ],
+  "confusion_matrix_labels": [
+    "active_mount",
+    "grazing",
+    "head_nodding",
+    "resting",
+    "walking"
+  ],
+  "leakage_controls": "GroupShuffleSplit grouped by source recording file (test recordings completely unseen during training)",
+  "sensor_channels": [
+    "accel_x",
+    "accel_y",
+    "accel_z",
+    "gyro_x",
+    "gyro_y",
+    "gyro_z"
+  ],
+  "sampling_rate_hz": 10.0,
+  "window_duration_seconds": 7.0
+}

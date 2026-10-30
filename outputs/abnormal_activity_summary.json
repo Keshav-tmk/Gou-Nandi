@@ -1,0 +1,11 @@
+{
+    "total_observations": 1635,
+    "grazing_reference_observations": 861,
+    "number_of_sensor_features": 176,
+    "anomaly_candidates": 542,
+    "other_observations": 1093,
+    "input_file": "D:\\Projects\\smart livestock\\livestock_ai_phase2\\data\\processed\\mount_behaviour_features.csv",
+    "results_file": "D:\\Projects\\smart livestock\\livestock_ai_phase2\\outputs\\abnormal_activity_candidates.csv",
+    "model_file": "D:\\Projects\\smart livestock\\livestock_ai_phase2\\models\\cow_activity_isolation_forest.joblib",
+    "warning": "Anomaly candidates are unusual sensor patterns. They are not confirmed disease, lameness, or estrus diagnoses."
+}

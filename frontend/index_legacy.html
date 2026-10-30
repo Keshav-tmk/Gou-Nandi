@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Livestock Monitoring — AI & Telemetry Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles/dashboard.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    
+    <!-- Top Bar -->
+    <header class="dashboard-header">
+      <div class="brand-section">
+        <div class="brand-icon">🐄</div>
+        <div class="brand-title">
+          <h1>Smart Livestock Monitoring</h1>
+          <div class="subtitle">AI Behaviour & Telemetry Intelligence — Cow Profile: Lakshmi</div>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="cow-selector">
+          <span>Animal:</span>
+          <select id="cowSelect">
+            <option value="COW-001" selected>COW-001 (Lakshmi)</option>
+            <option value="COW-002">COW-002</option>
+          </select>
+        </div>
+
+        <div id="serverStatusPill" class="status-pill online">
+          <div class="status-dot"></div>
+          <span id="serverStatusText">API ONLINE</span>
+        </div>
+
+        <div id="hwStatusPill" class="status-pill offline">
+          <div class="status-dot"></div>
+          <span id="hwStatusText">WAITING SENSOR</span>
+        </div>
+
+        <button id="pollToggleBtn" class="btn-control">
+          <span>⏸️</span> Pause
+        </button>
+
+        <button id="refreshBtn" class="btn-control">
+          <span>🔄</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+
+      <!-- 1. Live Telemetry Summary (Full Width) -->
+      <section class="glass-card col-12">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📡</span> Live Collar Hardware Telemetry (ESP32)
+          </div>
+          <div class="card-badge" id="lastUpdateText">Connecting to API...</div>
+        </div>
+
+        <div class="telemetry-hero">
+          <div class="telemetry-metric">
+            <div class="metric-label">Target Cow</div>
+            <div class="metric-value" id="targetCowId">COW-001</div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Device ID</div>
+            <div class="metric-value" id="targetDeviceId">ESP32-COLLAR-01</div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Last Packet</div>
+            <div class="metric-value" id="telemetryTimestamp">--:--:--</div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Accel X</div>
+            <div class="metric-value"><span id="valAx">--</span><span class="metric-unit">g</span></div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Accel Y</div>
+            <div class="metric-value"><span id="valAy">--</span><span class="metric-unit">g</span></div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Accel Z</div>
+            <div class="metric-value"><span id="valAz">--</span><span class="metric-unit">g</span></div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Gyro X</div>
+            <div class="metric-value"><span id="valGx">--</span><span class="metric-unit">dps</span></div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Gyro Y</div>
+            <div class="metric-value"><span id="valGy">--</span><span class="metric-unit">dps</span></div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Gyro Z</div>
+            <div class="metric-value"><span id="valGz">--</span><span class="metric-unit">dps</span></div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Contact Temp</div>
+            <div class="metric-value" id="valTemp" style="color: #ff9100;">--</div>
+          </div>
+          <div class="telemetry-metric">
+            <div class="metric-label">Window Buffer</div>
+            <div class="metric-value" id="valBufferCount">0 / 20</div>
+            <div class="prob-bar-bg" style="margin-top: 6px;">
+              <div id="valBufferProgress" class="prob-bar-fill active" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Sensor Waveform -->
+        <div class="waveform-container">
+          <canvas id="sensorWaveformCanvas"></canvas>
+        </div>
+      </section>
+
+      <!-- 2. AI Behaviour Classification (Left 6 cols) -->
+      <section class="glass-card col-6">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🧠</span> Real-Time Behaviour Classification
+          </div>
+          <div class="card-badge" id="behaviourModelVersion">Model: v1.0.0</div>
+        </div>
+
+        <div class="behaviour-display">
+          <div class="behaviour-icon-badge" id="behaviourIcon">⏳</div>
+          <div class="behaviour-info">
+            <h2 id="behaviourTitle">Awaiting Readings...</h2>
+            <div class="behaviour-confidence" id="behaviourConfidence">Waiting for ESP32 window</div>
+          </div>
+        </div>
+
+        <div class="card-title" style="font-size: 13px; margin-bottom: 12px;">Class Probabilities</div>
+        <div class="probabilities-list" id="probabilitiesContainer">
+          <div class="empty-state">
+            <div class="empty-state-icon">📡</div>
+            <p>Waiting for ESP32 sensor readings to populate rolling window...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Abnormal Activity Detection (Right 6 cols) -->
+      <section class="glass-card col-6">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🛡️</span> Abnormal Activity Detection (Isolation Forest)
+          </div>
+          <div class="card-badge">72 Features</div>
+        </div>
+
+        <div id="anomalyBox" class="anomaly-indicator-box normal">
+          <div class="anomaly-icon" id="anomalyIcon">⏳</div>
+          <div class="anomaly-text">
+            <h3 id="anomalyTitle">Awaiting Data</h3>
+            <p id="anomalyScoreText">Decision Score: --</p>
+          </div>
+        </div>
+
+        <p id="anomalyExplanation" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+          The anomaly detection model evaluates sensor dynamics against routine grazing baselines.
+        </p>
+
+        <div class="disclaimer-box">
+          ⚠️ <strong>Veterinary Notice:</strong> Isolation Forest anomaly scores flag unusual sensor pattern deviations from the grazing baseline. They do not independently prove illness, lameness, or clinical pathology.
+        </div>
+      </section>
+
+      <!-- 4. Additional Health & Screening Modules (3 cols each) -->
+      <!-- Module 3: Rumination Analysis -->
+      <section class="glass-card col-4">
+        <div class="card-header">
+          <div class="card-title"><span>🌾</span> Rumination Analysis</div>
+          <div class="card-badge" id="ruminationBadge">Awaiting Data</div>
+        </div>
+
+        <div id="ruminationBox" class="module-indicator-box normal">
+          <div class="module-icon" id="ruminationIcon">⏳</div>
+          <div class="module-text">
+            <h3 id="ruminationTitle">Awaiting Data</h3>
+            <p id="ruminationConfidence">Confidence: --</p>
+          </div>
+        </div>
+
+        <div class="prob-row" style="margin-top: 14px;">
+          <div class="prob-labels">
+            <span>Chewing / Rumination Probability</span>
+            <strong id="ruminationProbText">0%</strong>
+          </div>
+          <div class="prob-bar-bg">
+            <div id="ruminationProbBar" class="prob-bar-fill" style="width: 0%; background: linear-gradient(90deg, #00d2ff, #00e676);"></div>
+          </div>
+        </div>
+
+        <div class="module-metric-strip">
+          <div class="metric-item">
+            <span class="m-label">Chewing Rhythm:</span>
+            <strong class="m-val" id="ruminationChewScore">--</strong>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Threshold:</span>
+            <strong class="m-val">0.40</strong>
+          </div>
+        </div>
+
+        <p id="ruminationExplanation" class="module-explanation">
+          Monitors rhythmic jaw oscillations and cud chewing patterns from collar telemetry.
+        </p>
+      </section>
+
+      <!-- Module 4: Estrus Screening -->
+      <section class="glass-card col-4">
+        <div class="card-header">
+          <div class="card-title"><span>🔥</span> Estrus Surveillance</div>
+          <div class="card-badge" id="estrusBadge">Awaiting Data</div>
+        </div>
+
+        <div id="estrusBox" class="module-indicator-box normal">
+          <div class="module-icon" id="estrusIcon">⏳</div>
+          <div class="module-text">
+            <h3 id="estrusTitle">Awaiting Data</h3>
+            <p id="estrusScoreText">Risk Score: --</p>
+          </div>
+        </div>
+
+        <div class="prob-row" style="margin-top: 14px;">
+          <div class="prob-labels">
+            <span>Estrus Risk Index</span>
+            <strong id="estrusProbText">0%</strong>
+          </div>
+          <div class="prob-bar-bg">
+            <div id="estrusProbBar" class="prob-bar-fill" style="width: 0%; background: linear-gradient(90deg, #00e676, #ff9100, #ff1744);"></div>
+          </div>
+        </div>
+
+        <div class="module-metric-strip">
+          <div class="metric-item">
+            <span class="m-label">Mount Detected:</span>
+            <strong class="m-val" id="estrusMountStatus">No</strong>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Activity Surge:</span>
+            <strong class="m-val" id="estrusActivitySurge">--</strong>
+          </div>
+        </div>
+
+        <p id="estrusExplanation" class="module-explanation">
+          Monitors mounting behaviour, locomotion surges, and restlessness for standing heat detection.
+        </p>
+      </section>
+
+      <!-- Module 5: Lameness & Thermal Health -->
+      <section class="glass-card col-4">
+        <div class="card-header">
+          <div class="card-title"><span>🦵</span> Locomotion & Thermal</div>
+          <div class="card-badge" id="lamenessBadge">Awaiting Data</div>
+        </div>
+
+        <div id="lamenessBox" class="module-indicator-box normal">
+          <div class="module-icon" id="lamenessIcon">⏳</div>
+          <div class="module-text">
+            <h3 id="lamenessTitle">Awaiting Data</h3>
+            <p id="lamenessScoreText">Locomotion: --</p>
+          </div>
+        </div>
+
+        <div class="prob-row" style="margin-top: 14px;">
+          <div class="prob-labels">
+            <span>Gait Asymmetry Index</span>
+            <strong id="lamenessAsymmetryText">0%</strong>
+          </div>
+          <div class="prob-bar-bg">
+            <div id="lamenessAsymmetryBar" class="prob-bar-fill" style="width: 0%; background: linear-gradient(90deg, #00e676, #ff9100);"></div>
+          </div>
+        </div>
+
+        <div class="module-metric-strip">
+          <div class="metric-item">
+            <span class="m-label">Contact Temp:</span>
+            <strong class="m-val" id="lamenessTempText">--</strong>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Thermal Status:</span>
+            <strong class="m-val" id="lamenessTempStatus">NORMAL</strong>
+          </div>
+        </div>
+
+        <p id="lamenessExplanation" class="module-explanation">
+          Evaluates walking asymmetry, jerk variances, and DS18B20 contact temperature for early illness detection.
+        </p>
+      </section>
+
+      <!-- 5. Prediction History Table (Full Width) -->
+      <section class="glass-card col-12">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📜</span> Complete 5-Module AI Prediction Audit Trail
+          </div>
+          <div class="card-badge">Live History Stream</div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Behaviour</th>
+                <th>Anomaly</th>
+                <th>Rumination</th>
+                <th>Estrus Risk</th>
+                <th>Locomotion & Temp</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                  No historical predictions recorded for this cow yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+      Smart Livestock Monitoring System — Phase 2 AI & IoT Ingestion Engine | Scikit-Learn 1.9.1 | FastAPI Backend | Python 3.12
+    </footer>
+
+  </div>
+
+  <script src="/static/components/dashboard.js"></script>
+</body>
+</html>

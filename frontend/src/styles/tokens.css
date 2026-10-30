@@ -1,0 +1,130 @@
+/* ============================================================
+   SmartLivestock AI — Design Tokens & Theme Variables
+   Ported directly from SmartLivestock_Project constants/theme.ts
+   ============================================================ */
+
+:root {
+  /* Primary palette */
+  --bg: #F7F9F4;
+  --card: #FFFFFF;
+  --primary: #2E7D32;
+  --secondary: #66BB6A;
+  --soft-green: #E8F5E9;
+  --light-green: #C8E6C9;
+
+  /* Text */
+  --text: #263238;
+  --text-2: #607067;
+  --text-3: #90A4AE;
+
+  /* Status Colors */
+  --warn: #F9A825;
+  --warn-bg: #FFF8E1;
+  --danger: #D84343;
+  --danger-bg: #FFEBEE;
+  --info: #1976D2;
+  --info-bg: #E3F2FD;
+  --gold: #F59E0B;
+  --gold-bg: #FEF3C7;
+
+  /* Borders & Dividers */
+  --border: #E3E9E2;
+  --border-light: #EDF2EC;
+  --divider: #ECEFF1;
+
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-xxl: 24px;
+  --space-xxxl: 32px;
+
+  /* Border Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Font Sizes */
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-md: 15px;
+  --font-lg: 17px;
+  --font-xl: 20px;
+  --font-xxl: 24px;
+  --font-xxxl: 30px;
+  --font-hero: 36px;
+
+  /* Font Weights */
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* Shadows */
+  --shadow-card: 0 1px 6px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.09);
+  --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.05);
+
+  /* Dark-surface & Live-signal Tokens */
+  --panel-dark: #0B1220;
+  --panel-dark-2: #0F1A2E;
+  --neon: #39FF14;
+  --neon-soft: rgba(57, 255, 20, 0.35);
+  --neon-grid: rgba(57, 255, 20, 0.08);
+  --neon-grid-major: rgba(57, 255, 20, 0.16);
+  --anomaly-red: #FF3D3D;
+  --anomaly-red-soft: rgba(255, 61, 61, 0.35);
+  --estrus-amber: #F59E0B;
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --tab-bar-height: 60px;
+}
+
+/* Dark mode theme override */
+[data-theme="dark"], html.dark {
+  --bg: #080D1A;
+  --card: #0F172A;
+  --text: #F8FAFC;
+  --text-2: #94A3B8;
+  --text-3: #64748B;
+  --border: #1E293B;
+  --border-light: #1E293B;
+  --divider: #1E293B;
+  --soft-green: #064E3B;
+  --light-green: #065F46;
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-sidebar: 2px 0 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Neon Pulse Dot animation */
+@keyframes pulseDotAnimation {
+  0% {
+    box-shadow: 0 0 0 0 var(--pulse-ring, rgba(57, 255, 20, 0.65));
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.pulse-dot-indicator {
+  display: inline-block;
+  border-radius: 50%;
+  animation: pulseDotAnimation 1.6s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes liveBadgeBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.85); }
+}
+
+.live-badge-dot {
+  animation: liveBadgeBlink 1.2s infinite ease-in-out;
+}

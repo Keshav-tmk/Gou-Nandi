@@ -1,0 +1,115 @@
+{
+  "input_file": "D:\\Projects\\smart livestock\\livestock_ai_phase2\\data\\raw\\rumination_dataset_cleaned.csv",
+  "raw_rows": 13088,
+  "valid_segments": 671,
+  "feature_count": 88,
+  "train_segments": 503,
+  "test_segments": 168,
+  "binary_accuracy": 0.9583333333333334,
+  "binary_macro_f1": 0.8590435095289464,
+  "binary_classification_report": {
+    "not_rumination": {
+      "precision": 0.9617834394904459,
+      "recall": 0.993421052631579,
+      "f1-score": 0.9773462783171522,
+      "support": 152.0
+    },
+    "rumination": {
+      "precision": 0.9090909090909091,
+      "recall": 0.625,
+      "f1-score": 0.7407407407407407,
+      "support": 16.0
+    },
+    "accuracy": 0.9583333333333334,
+    "macro avg": {
+      "precision": 0.9354371742906775,
+      "recall": 0.8092105263157895,
+      "f1-score": 0.8590435095289464,
+      "support": 168.0
+    },
+    "weighted avg": {
+      "precision": 0.9567651032619185,
+      "recall": 0.9583333333333334,
+      "f1-score": 0.9548124175955892,
+      "support": 168.0
+    }
+  },
+  "binary_confusion_matrix_labels_0_1": [
+    [
+      151,
+      1
+    ],
+    [
+      6,
+      10
+    ]
+  ],
+  "multiclass_accuracy": 0.9226190476190477,
+  "multiclass_macro_f1": 0.8957143558303156,
+  "multiclass_classification_report": {
+    "grazing": {
+      "precision": 1.0,
+      "recall": 0.896551724137931,
+      "f1-score": 0.9454545454545454,
+      "support": 58.0
+    },
+    "resting": {
+      "precision": 0.8225806451612904,
+      "recall": 1.0,
+      "f1-score": 0.9026548672566371,
+      "support": 51.0
+    },
+    "ruminating": {
+      "precision": 1.0,
+      "recall": 0.625,
+      "f1-score": 0.7692307692307693,
+      "support": 16.0
+    },
+    "walking": {
+      "precision": 0.9545454545454546,
+      "recall": 0.9767441860465116,
+      "f1-score": 0.9655172413793104,
+      "support": 43.0
+    },
+    "accuracy": 0.9226190476190477,
+    "macro avg": {
+      "precision": 0.9442815249266863,
+      "recall": 0.8745739775461107,
+      "f1-score": 0.8957143558303156,
+      "support": 168.0
+    },
+    "weighted avg": {
+      "precision": 0.9345063538611926,
+      "recall": 0.9226190476190477,
+      "f1-score": 0.9208136640086595,
+      "support": 168.0
+    }
+  },
+  "multiclass_confusion_matrix_labels_grazing_resting_ruminating_walking": [
+    [
+      52,
+      4,
+      0,
+      2
+    ],
+    [
+      0,
+      51,
+      0,
+      0
+    ],
+    [
+      0,
+      6,
+      10,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      42
+    ]
+  ],
+  "warning": "Public dataset segment-level evaluation only; not real-farm validation."
+}
