@@ -1,5 +1,5 @@
 // ============================================================
-// SmartLivestock AI — Cows & Herd Management Service
+// GouNandi AI — Cows & Herd Management Service
 // ============================================================
 
 import { apiClient } from './apiClient';
@@ -16,5 +16,16 @@ export const cowsService = {
       timeoutMs: 5000,
     });
   },
-};
 
+  async addCow(data: {
+    name: string;
+    tag: string;
+    breed: string;
+    weight_kg: number;
+    deviceId?: string;
+    date_of_birth?: string;
+    lactation_stage?: string;
+  }): Promise<{ status: string; cow: any }> {
+    return apiClient.post('/cows', data);
+  },
+};

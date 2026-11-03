@@ -23,31 +23,31 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   isStale = false,
 }) => {
   return (
-    <Card className={`p-4 ${isStale ? 'opacity-75' : ''}`}>
+    <Card className={`p-3.5 border border-[#E3E9E2] dark:border-farm-darkBorder bg-white dark:bg-farm-darkCard shadow-xs ${isStale ? 'opacity-70' : ''}`}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#607067] dark:text-gray-400">
           {label}
         </span>
         {icon && (
-          <span className="text-gray-400 dark:text-gray-500 text-sm">
+          <span className="text-[#2E7D32] dark:text-emerald-400 text-sm">
             {icon}
           </span>
         )}
       </div>
 
       <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white font-mono">
+        <span className="text-lg sm:text-xl font-extrabold tracking-tight text-[#263238] dark:text-white font-mono">
           {value}
         </span>
         {unit && (
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          <span className="text-xs font-semibold text-[#607067] dark:text-gray-400">
             {unit}
           </span>
         )}
       </div>
 
       {subValue && (
-        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 truncate">
+        <p className="mt-1 text-[11px] text-[#607067] dark:text-gray-400 truncate">
           {subValue}
         </p>
       )}

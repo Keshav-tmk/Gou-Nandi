@@ -22,32 +22,32 @@ export const StatCard: React.FC<StatCardProps> = ({
   variant = 'default',
 }) => {
   const borderHighlight = {
-    default: '',
-    success: 'border-l-4 border-l-emerald-600',
-    warning: 'border-l-4 border-l-amber-500',
-    danger: 'border-l-4 border-l-rose-500',
+    default: 'border-l-4 border-l-transparent',
+    success: 'border-l-4 border-l-[#2E7D32]',
+    warning: 'border-l-4 border-l-[#F9A825]',
+    danger: 'border-l-4 border-l-[#D84343]',
   }[variant];
 
   return (
-    <Card className={`relative overflow-hidden ${borderHighlight}`}>
+    <Card className={`relative overflow-hidden bg-white dark:bg-farm-darkCard border border-[#E3E9E2] dark:border-farm-darkBorder ${borderHighlight} transition-all duration-200 hover:shadow-md`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#607067] dark:text-gray-400">
             {title}
           </p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+            <span className="text-2xl font-extrabold tracking-tight text-[#263238] dark:text-white">
               {value}
             </span>
           </div>
           {subtitle && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-[#607067] dark:text-gray-400">
               {subtitle}
             </p>
           )}
         </div>
         {icon && (
-          <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-farm-darkBorder text-gray-600 dark:text-gray-300">
+          <div className="p-2.5 rounded-xl bg-[#F7F9F4] dark:bg-farm-darkBorder text-[#2E7D32] dark:text-emerald-400 border border-[#E3E9E2] dark:border-farm-darkBorder">
             {icon}
           </div>
         )}

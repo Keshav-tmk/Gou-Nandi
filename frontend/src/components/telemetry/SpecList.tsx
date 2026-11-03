@@ -24,19 +24,19 @@ export const SpecList: React.FC<SpecListProps> = ({ hasTemperatureSensor = false
   ];
 
   return (
-    <Card className="mb-6">
-      <div className="flex items-center gap-2 pb-3 border-b border-farm-border dark:border-farm-darkBorder">
-        <HardDrive className="w-4 h-4 text-emerald-600" />
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+    <Card className="mb-6 border border-[#E3E9E2] dark:border-farm-darkBorder bg-white dark:bg-farm-darkCard shadow-xs">
+      <div className="flex items-center gap-2 pb-3 border-b border-[#E3E9E2] dark:border-farm-darkBorder">
+        <HardDrive className="w-4 h-4 text-[#2E7D32]" />
+        <h3 className="text-sm font-extrabold text-[#263238] dark:text-white">
           Hardware Architecture Specification
         </h3>
       </div>
 
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {specs.map((s, idx) => (
-          <div key={idx} className="p-2.5 rounded-xl bg-gray-50 dark:bg-farm-darkBorder/40">
-            <span className="text-xs text-gray-400 block">{s.label}</span>
-            <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 block mt-0.5">
+          <div key={idx} className="p-2.5 rounded-xl bg-[#F7F9F4] dark:bg-farm-darkBorder/40 border border-[#E3E9E2] dark:border-farm-darkBorder">
+            <span className="text-[11px] text-[#607067] dark:text-gray-400 block">{s.label}</span>
+            <span className="text-xs font-bold text-[#263238] dark:text-gray-200 block mt-0.5">
               {s.value}
             </span>
           </div>

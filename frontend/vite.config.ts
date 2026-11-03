@@ -7,6 +7,7 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0',
     proxy: {
+      '/auth': 'http://127.0.0.1:8000',
       '/dashboard/api': 'http://127.0.0.1:8000',
       '/sensor-data': 'http://127.0.0.1:8000',
       '/ai': 'http://127.0.0.1:8000',
@@ -20,4 +21,3 @@ export default defineConfig({
     },
   },
 });
-

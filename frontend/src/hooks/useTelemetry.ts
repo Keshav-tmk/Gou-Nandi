@@ -72,7 +72,7 @@ export function useTelemetry(cowIdOverride?: string) {
         setBackendStatus('online');
         setLastSuccessfulSync(new Date().toISOString());
 
-        // Update waveform points: keep at most 15 readings
+        // Update waveform points: keep at most 25 readings
         if (data.sensor && data.sensor.values) {
           const pt = parseTelemetryPoint(data.sensor);
           if (pt) {
@@ -82,7 +82,7 @@ export function useTelemetry(cowIdOverride?: string) {
                 return prev;
               }
               const next = [...prev, pt];
-              return next.slice(-15);
+              return next.slice(-25);
             });
           }
         }
@@ -104,14 +104,34 @@ export function useTelemetry(cowIdOverride?: string) {
     [targetCowId, isDemoMode, setBackendStatus, setLastSuccessfulSync, setLastErrorMessage]
   );
 
-  // Reset waveform when cow changes to prevent cross-cow leakage
+  // Reset & hydrate waveform when cow changes to prevent cross-cow leakage
   useEffect(() => {
+    let isCancelled = false;
     setWaveformPoints([]);
     setDashboardData(null);
     setIsLoading(true);
     setFetchError(null);
+
+    if (!isDemoMode) {
+      telemetryService
+        .getRecentReadings(targetCowId, 25)
+        .then((res: any) => {
+          if (!isCancelled && res && Array.isArray(res.readings) && res.readings.length > 0) {
+            const points = res.readings.map(parseTelemetryPoint).filter(Boolean) as TelemetryPoint[];
+            if (points.length > 0) {
+              setWaveformPoints(points.slice(-25));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+
     fetchTelemetry();
-  }, [targetCowId, fetchTelemetry]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [targetCowId, fetchTelemetry, isDemoMode]);
 
   // Main polling lifecycle
   useEffect(() => {

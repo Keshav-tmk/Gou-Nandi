@@ -20,11 +20,11 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   return (
     <div className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 ${className}`}>
       <div>
-        <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+        <h2 className="text-base sm:text-lg font-extrabold text-[#263238] dark:text-white tracking-tight">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-[#607067] dark:text-gray-400 mt-0.5">
             {subtitle}
           </p>
         )}

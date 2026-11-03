@@ -1,5 +1,5 @@
 // ============================================================
-// SmartLivestock AI — Central Zustand Application Store
+// GouNandi AI — Central Zustand Application Store
 // ============================================================
 
 import { create } from 'zustand';
@@ -50,16 +50,17 @@ const STORAGE_KEY_SETTINGS = 'smartlivestock_settings';
 function getInitialTheme(): AppTheme {
   const saved = localStorage.getItem(`${STORAGE_KEY_SETTINGS}_theme`);
   if (saved === 'dark' || saved === 'light') return saved;
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
   return 'light';
 }
 
 function getInitialApiUrl(): string {
   const saved = localStorage.getItem(`${STORAGE_KEY_SETTINGS}_api_url`);
   if (saved && saved.trim()) return saved.trim();
-  // If Vite env is set, use it; otherwise default to local FastAPI port
+  // If running in browser under Vite dev server (port 5173), default to relative ''
+  // so requests are proxied by Vite directly to 8000 without CORS or host mismatch.
+  if (typeof window !== 'undefined' && window.location.port === '5173') {
+    return '';
+  }
   return (import.meta as any).env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 }
 
@@ -142,4 +143,3 @@ export const useAppStore = create<AppState>((set, get) => {
     setLastErrorMessage: (msg) => set({ lastErrorMessage: msg }),
   };
 });
-

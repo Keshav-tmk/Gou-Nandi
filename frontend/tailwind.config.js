@@ -9,31 +9,43 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#2E7D32',
-          50: '#E8F5E9',
+          DEFAULT: '#2E7D32', // Forest green
+          forest: '#2E7D32',
+          leaf: '#66BB6A',   // Secondary leaf green
+          50: '#E8F5E9',     // Healthy background
           100: '#C8E6C9',
           200: '#A5D6A7',
-          600: '#256628',
+          300: '#81C784',
+          400: '#66BB6A',
+          500: '#4CAF50',
+          600: '#2E7D32',
           700: '#1B5E20',
           800: '#144617',
           900: '#0d2e0f',
         },
         farm: {
-          bg: '#F6F8F4',
-          border: '#E5EAE2',
-          card: '#FFFFFF',
+          bg: '#F7F9F4',     // Pale herbal-gray background
+          card: '#FFFFFF',   // White card surface
+          border: '#E3E9E2', // Subtle borders
+          healthy: '#E8F5E9',
           darkBg: '#0f130f',
           darkCard: '#181d18',
           darkBorder: '#273127',
           darkText: '#e2e8e2',
           darkMuted: '#8a9b8a',
         },
+        agriText: {
+          main: '#263238',   // Main text
+          secondary: '#607067', // Secondary text
+          muted: '#8A9990',
+        },
         status: {
           success: '#2E7D32',
-          warning: '#F59E0B',
-          danger: '#D32F2F',
+          warning: '#F9A825', // Warning
+          danger: '#D84343',  // Critical
+          critical: '#D84343',
           rest: '#7B1FA2',
-          info: '#1976D2',
+          info: '#1976D2',    // Information
         },
       },
       fontFamily: {

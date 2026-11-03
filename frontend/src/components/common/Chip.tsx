@@ -14,21 +14,21 @@ interface ChipProps {
 }
 
 const variantStyles: Record<ChipVariant, string> = {
-  success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
-  warning: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
-  danger: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800',
-  info: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
-  neutral: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
-  rest: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800',
+  success: 'bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9] dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+  warning: 'bg-[#FFF8E1] text-[#B7791F] border-[#FFE082] dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
+  danger: 'bg-[#FFEBEE] text-[#D84343] border-[#FFCDD2] dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800',
+  info: 'bg-[#E3F2FD] text-[#1976D2] border-[#BBDEFB] dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
+  neutral: 'bg-[#F1F5F0] text-[#607067] border-[#E3E9E2] dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
+  rest: 'bg-[#F3E5F5] text-[#7B1FA2] border-[#E1BEE7] dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800',
 };
 
 const dotColors: Record<ChipVariant, string> = {
-  success: 'bg-emerald-500',
-  warning: 'bg-amber-500',
-  danger: 'bg-rose-500',
-  info: 'bg-blue-500',
-  neutral: 'bg-gray-400',
-  rest: 'bg-purple-500',
+  success: 'bg-[#2E7D32]',
+  warning: 'bg-[#F9A825]',
+  danger: 'bg-[#D84343]',
+  info: 'bg-[#1976D2]',
+  neutral: 'bg-[#607067]',
+  rest: 'bg-[#7B1FA2]',
 };
 
 export const Chip: React.FC<ChipProps> = ({

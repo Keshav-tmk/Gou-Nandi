@@ -35,10 +35,10 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
       />
 
       {/* Slide-out Drawer Panel */}
-      <div className="relative w-64 max-w-[80vw] h-full bg-white dark:bg-farm-darkCard shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200">
+      <div className="relative w-64 max-w-[80vw] h-full bg-white dark:bg-farm-darkCard shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-200 border-r border-[#E3E9E2] dark:border-farm-darkBorder">
         <button
           onClick={onClose}
-          className="absolute top-4 right-3 p-1.5 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="absolute top-4 right-3 p-1.5 rounded-xl text-[#607067] hover:bg-[#F7F9F4] dark:hover:bg-gray-800"
           aria-label="Close navigation menu"
         >
           <X className="w-5 h-5" />

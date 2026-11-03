@@ -20,16 +20,16 @@ export const CowSelector: React.FC<CowSelectorProps> = ({ hardwareStatus, device
   const currentCow = DEMO_COW_PROFILES.find((c) => c.id === selectedCowId) || DEMO_COW_PROFILES[0];
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-6 border border-[#E3E9E2] dark:border-farm-darkBorder bg-white dark:bg-farm-darkCard shadow-xs">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Cow Info */}
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-2xl border border-emerald-200 dark:border-emerald-800">
+          <div className="w-12 h-12 rounded-2xl bg-[#E8F5E9] dark:bg-emerald-950/60 flex items-center justify-center text-2xl border border-[#C8E6C9] dark:border-emerald-800 shrink-0 select-none">
             🐄
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-extrabold text-[#263238] dark:text-white">
                 {currentCow.name} ({currentCow.id})
               </h3>
               <Chip label={currentCow.tag} variant="neutral" />
@@ -40,16 +40,16 @@ export const CowSelector: React.FC<CowSelectorProps> = ({ hardwareStatus, device
                 <Chip label="Waiting for Sensor" variant="neutral" dot />
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Breed: <span className="font-medium text-gray-700 dark:text-gray-300">{currentCow.breed}</span> • Device:{' '}
-              <span className="font-mono text-gray-700 dark:text-gray-300">{deviceId || currentCow.deviceId}</span>
+            <p className="text-xs text-[#607067] dark:text-gray-400 mt-1">
+              Breed: <span className="font-semibold text-[#263238] dark:text-gray-300">{currentCow.breed}</span> • Device:{' '}
+              <span className="font-mono text-[#263238] dark:text-gray-300">{deviceId || currentCow.deviceId}</span>
             </p>
           </div>
         </div>
 
         {/* Quick Switch Pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium text-gray-400 mr-1">Switch:</span>
+          <span className="text-xs font-semibold text-[#607067] mr-1">Switch Cow:</span>
           {DEMO_COW_PROFILES.map((cow) => {
             const isSelected = cow.id === selectedCowId;
             return (
@@ -57,10 +57,10 @@ export const CowSelector: React.FC<CowSelectorProps> = ({ hardwareStatus, device
                 key={cow.id}
                 onClick={() => setSelectedCowId(cow.id)}
                 type="button"
-                className={`px-3 py-1 text-xs rounded-xl font-medium transition-all ${
+                className={`px-3 py-1.5 text-xs rounded-xl font-semibold transition-all border ${
                   isSelected
-                    ? 'bg-emerald-700 text-white shadow-sm'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                    ? 'bg-[#2E7D32] text-white shadow-xs border-[#2E7D32]'
+                    : 'bg-[#F7F9F4] hover:bg-[#E8F5E9] text-[#607067] hover:text-[#2E7D32] border-[#E3E9E2] dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
                 }`}
               >
                 {cow.name}

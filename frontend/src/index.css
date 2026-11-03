@@ -4,8 +4,8 @@
 
 @layer base {
   body {
-    background-color: #F6F8F4;
-    color: #1f2937;
+    background-color: #F7F9F4;
+    color: #263238;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
   .dark body {
