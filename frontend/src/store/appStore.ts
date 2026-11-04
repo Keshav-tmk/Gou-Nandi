@@ -1,3 +1,4 @@
+
 // ============================================================
 // GouNandi AI — Central Zustand Application Store
 // ============================================================
@@ -47,33 +48,87 @@ interface AppState {
 
 const STORAGE_KEY_SETTINGS = 'smartlivestock_settings';
 
+const PRODUCTION_API_URL = 'https://gou-nandi.onrender.com';
+
+// ============================================================
+// INITIAL THEME
+// ============================================================
+
 function getInitialTheme(): AppTheme {
-  const saved = localStorage.getItem(`${STORAGE_KEY_SETTINGS}_theme`);
-  if (saved === 'dark' || saved === 'light') return saved;
+  const saved = localStorage.getItem(
+    `${STORAGE_KEY_SETTINGS}_theme`
+  );
+
+  if (saved === 'dark' || saved === 'light') {
+    return saved;
+  }
+
   return 'light';
 }
 
+// ============================================================
+// INITIAL API URL
+// ============================================================
+
 function getInitialApiUrl(): string {
-  const saved = localStorage.getItem(`${STORAGE_KEY_SETTINGS}_api_url`);
-  if (saved && saved.trim()) return saved.trim();
-  // If running in browser under Vite dev server (port 5173), default to relative ''
-  // so requests are proxied by Vite directly to 8000 without CORS or host mismatch.
-  if (typeof window !== 'undefined' && window.location.port === '5173') {
+  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
+  // Production: prioritize the Vercel environment variable.
+  // Never fall back to localhost, relative URL, or outdated localStorage in production.
+  if (import.meta.env.PROD) {
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl.replace(/\/+$/, '');
+    }
+    return PRODUCTION_API_URL;
+  }
+
+  // Development: use previously saved API URL if available.
+  const saved = localStorage.getItem(
+    `${STORAGE_KEY_SETTINGS}_api_url`
+  );
+
+  if (saved && saved.trim()) {
+    return saved.trim().replace(/\/+$/, '');
+  }
+
+  // Local Vite development server.
+  if (
+    typeof window !== 'undefined' &&
+    window.location.port === '5173'
+  ) {
     return '';
   }
-  return (import.meta as any).env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+
+  return (
+    envUrl?.replace(/\/+$/, '') ||
+    'http://127.0.0.1:8000'
+  );
 }
 
+// ============================================================
+// INITIAL POLLING INTERVAL
+// ============================================================
+
 function getInitialPollingInterval(): number {
-  const saved = localStorage.getItem(`${STORAGE_KEY_SETTINGS}_polling_interval`);
+  const saved = localStorage.getItem(
+    `${STORAGE_KEY_SETTINGS}_polling_interval`
+  );
+
   const parsed = saved ? parseInt(saved, 10) : 2000;
-  return [1000, 2000, 5000].includes(parsed) ? parsed : 2000;
+
+  return [1000, 2000, 5000].includes(parsed)
+    ? parsed
+    : 2000;
 }
+
+// ============================================================
+// ZUSTAND STORE
+// ============================================================
 
 export const useAppStore = create<AppState>((set, get) => {
   const initialTheme = getInitialTheme();
 
-  // Apply theme to document element immediately
+  // Apply theme immediately.
   if (typeof document !== 'undefined') {
     if (initialTheme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -83,63 +138,121 @@ export const useAppStore = create<AppState>((set, get) => {
   }
 
   return {
+    // Cow selection
     selectedCowId: 'COW-001',
-    setSelectedCowId: (cowId) => set({ selectedCowId: cowId }),
 
+    setSelectedCowId: (cowId) =>
+      set({ selectedCowId: cowId }),
+
+    // Theme
     theme: initialTheme,
+
     toggleTheme: () => {
       const current = get().theme;
-      const next: AppTheme = current === 'dark' ? 'light' : 'dark';
-      localStorage.setItem(`${STORAGE_KEY_SETTINGS}_theme`, next);
+
+      const next: AppTheme =
+        current === 'dark' ? 'light' : 'dark';
+
+      localStorage.setItem(
+        `${STORAGE_KEY_SETTINGS}_theme`,
+        next
+      );
+
       if (typeof document !== 'undefined') {
-        if (next === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+        document.documentElement.classList.toggle(
+          'dark',
+          next === 'dark'
+        );
       }
+
       set({ theme: next });
     },
+
     setTheme: (theme) => {
-      localStorage.setItem(`${STORAGE_KEY_SETTINGS}_theme`, theme);
+      localStorage.setItem(
+        `${STORAGE_KEY_SETTINGS}_theme`,
+        theme
+      );
+
       if (typeof document !== 'undefined') {
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+        document.documentElement.classList.toggle(
+          'dark',
+          theme === 'dark'
+        );
       }
+
       set({ theme });
     },
 
+    // Operation Mode
     isDemoMode: false,
-    setDemoMode: (isDemo) => set({ isDemoMode: isDemo }),
 
+    setDemoMode: (isDemo) =>
+      set({ isDemoMode: isDemo }),
+
+    // Polling Controls
     pollingIntervalMs: getInitialPollingInterval(),
+
     setPollingIntervalMs: (ms) => {
-      localStorage.setItem(`${STORAGE_KEY_SETTINGS}_polling_interval`, String(ms));
+      localStorage.setItem(
+        `${STORAGE_KEY_SETTINGS}_polling_interval`,
+        String(ms)
+      );
+
       set({ pollingIntervalMs: ms });
     },
 
     isPollingPaused: false,
-    togglePollingPaused: () => set((s) => ({ isPollingPaused: !s.isPollingPaused })),
-    setPollingPaused: (paused) => set({ isPollingPaused: paused }),
 
+    togglePollingPaused: () =>
+      set((state) => ({
+        isPollingPaused: !state.isPollingPaused,
+      })),
+
+    setPollingPaused: (paused) =>
+      set({ isPollingPaused: paused }),
+
+    // API Configuration
     apiBaseUrl: getInitialApiUrl(),
+
     setApiBaseUrl: (url) => {
       const clean = url.trim().replace(/\/+$/, '');
-      localStorage.setItem(`${STORAGE_KEY_SETTINGS}_api_url`, clean);
+
+      if (!import.meta.env.PROD) {
+        localStorage.setItem(
+          `${STORAGE_KEY_SETTINGS}_api_url`,
+          clean
+        );
+      } else if (clean.startsWith('https://') && !clean.includes('localhost') && !clean.includes('127.0.0.1')) {
+        localStorage.setItem(
+          `${STORAGE_KEY_SETTINGS}_api_url`,
+          clean
+        );
+      }
+
       set({ apiBaseUrl: clean });
     },
 
+    // Mobile Drawer
     isMobileDrawerOpen: false,
-    setMobileDrawerOpen: (open) => set({ isMobileDrawerOpen: open }),
 
+    setMobileDrawerOpen: (open) =>
+      set({ isMobileDrawerOpen: open }),
+
+    // Connectivity
     backendStatus: 'checking',
-    setBackendStatus: (status) => set({ backendStatus: status }),
+
+    setBackendStatus: (status) =>
+      set({ backendStatus: status }),
+
     lastSuccessfulSync: null,
-    setLastSuccessfulSync: (isoTime) => set({ lastSuccessfulSync: isoTime }),
+
+    setLastSuccessfulSync: (isoTime) =>
+      set({ lastSuccessfulSync: isoTime }),
+
     lastErrorMessage: null,
-    setLastErrorMessage: (msg) => set({ lastErrorMessage: msg }),
+
+    setLastErrorMessage: (msg) =>
+      set({ lastErrorMessage: msg }),
   };
 });

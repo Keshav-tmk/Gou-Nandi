@@ -1,16 +1,65 @@
+
 // ============================================================
-// GouNandi AI — Centralized HTTP API Client with Auto-Failover
+// GouNandi AI — Centralized HTTP API Client
+// Production: Render Backend
+// Development: Local FastAPI Backend
 // ============================================================
 
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
+
+// ------------------------------------------------------------
+// API CONFIGURATION
+// ------------------------------------------------------------
+
+export const PRODUCTION_API_URL = 'https://gou-nandi.onrender.com';
+
+export function getEffectiveApiBaseUrl(): string {
+  const isProd = import.meta.env.PROD;
+  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '');
+
+  // 1. In Production (Vercel / live domain):
+  // Never fall back to localhost, 127.0.0.1, relative Vercel URLs, or stale dev localStorage
+  if (isProd) {
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl;
+    }
+    const storeUrl = useAppStore.getState().apiBaseUrl?.trim().replace(/\/+$/, '');
+    if (storeUrl && storeUrl.startsWith('https://') && !storeUrl.includes('localhost') && !storeUrl.includes('127.0.0.1')) {
+      return storeUrl;
+    }
+    return PRODUCTION_API_URL;
+  }
+
+  // 2. In Local Development:
+  if (envUrl) {
+    return envUrl;
+  }
+  const storeUrl = useAppStore.getState().apiBaseUrl?.trim().replace(/\/+$/, '');
+  if (storeUrl) {
+    return storeUrl;
+  }
+  if (typeof window !== 'undefined' && window.location.port === '5173') {
+    return '';
+  }
+  return 'http://127.0.0.1:8000';
+}
+
+// ------------------------------------------------------------
+// API ERROR CLASS
+// ------------------------------------------------------------
 
 export class ApiError extends Error {
   status: number;
   statusText: string;
   data: any;
 
-  constructor(message: string, status: number, statusText: string, data?: any) {
+  constructor(
+    message: string,
+    status: number,
+    statusText: string,
+    data?: any
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -19,144 +68,276 @@ export class ApiError extends Error {
   }
 }
 
+// ------------------------------------------------------------
+// REQUEST OPTIONS
+// ------------------------------------------------------------
+
 interface RequestOptions extends RequestInit {
   timeoutMs?: number;
-  params?: Record<string, string | number | boolean | undefined | null>;
+  params?: Record<
+    string,
+    string | number | boolean | undefined | null
+  >;
 }
+
+// ------------------------------------------------------------
+// CENTRAL API REQUEST
+// ------------------------------------------------------------
 
 export async function apiRequest<T = any>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { timeoutMs = 8000, params, ...fetchInit } = options;
-  const store = useAppStore.getState();
-  const rawBaseUrl = store.apiBaseUrl ? store.apiBaseUrl.replace(/\/+$/, '') : '';
 
-  // Helper to build query string
+  const {
+    timeoutMs = 30000,
+    params,
+    ...fetchInit
+  } = options;
+
+  const isDevelopment = import.meta.env.DEV;
+
+  const rawBaseUrl = getEffectiveApiBaseUrl();
+
+  // ----------------------------------------------------------
+  // BUILD URL
+  // ----------------------------------------------------------
+
+  const cleanPath = path.startsWith('/')
+    ? path
+    : `/${path}`;
+
   let queryString = '';
+
   if (params) {
     const searchParams = new URLSearchParams();
-    for (const [key, val] of Object.entries(params)) {
-      if (val !== undefined && val !== null) {
-        searchParams.append(key, String(val));
+
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, String(value));
       }
     }
+
     queryString = searchParams.toString();
   }
 
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const pathWithQuery = queryString ? `${cleanPath}?${queryString}` : cleanPath;
+  const pathWithQuery = queryString
+    ? `${cleanPath}?${queryString}`
+    : cleanPath;
 
-  // Retrieve JWT auth token if available
-  const authHeaders: Record<string, string> = {};
+  // ----------------------------------------------------------
+  // AUTHENTICATION TOKEN
+  // ----------------------------------------------------------
+
   const token =
     useAuthStore.getState().token ||
-    (typeof localStorage !== 'undefined' ? localStorage.getItem('gounandi_jwt_token') : null);
+    (typeof localStorage !== 'undefined'
+      ? localStorage.getItem('gounandi_jwt_token')
+      : null);
+
+  const headers = new Headers(fetchInit.headers);
+
+  headers.set('Accept', 'application/json');
+
+  if (fetchInit.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   if (token) {
-    authHeaders['Authorization'] = `Bearer ${token}`;
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const headers = {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    ...authHeaders,
-    ...(fetchInit.headers || {}),
-  };
+  // ----------------------------------------------------------
+  // CANDIDATE URLS
+  // ----------------------------------------------------------
 
-  // Build candidate URLs in order of preference:
-  // 1. Configured base URL
-  // 2. Relative path (uses Vite dev proxy to 8000)
-  // 3. Fallback to direct http://127.0.0.1:8000 or http://localhost:8000
-  const candidateUrls: string[] = [];
+  const candidateUrls: string[] = [
+    `${rawBaseUrl}${pathWithQuery}`,
+  ];
 
-  if (rawBaseUrl) {
-    candidateUrls.push(`${rawBaseUrl}${pathWithQuery}`);
-    candidateUrls.push(pathWithQuery); // relative fallback
-  } else {
+  // In production, NEVER use relative Vercel URLs or localhost
+  // Local fallbacks ONLY during development when dev server is running.
+  if (isDevelopment && rawBaseUrl !== '') {
     candidateUrls.push(pathWithQuery);
-    candidateUrls.push(`http://127.0.0.1:8000${pathWithQuery}`);
-    candidateUrls.push(`http://localhost:8000${pathWithQuery}`);
+    candidateUrls.push(
+      `http://localhost:8000${pathWithQuery}`
+    );
   }
+
+  // ----------------------------------------------------------
+  // EXECUTE REQUEST
+  // ----------------------------------------------------------
 
   let lastError: any = null;
 
-  for (let i = 0; i < candidateUrls.length; i++) {
-    const targetUrl = candidateUrls[i];
+  for (const targetUrl of candidateUrls) {
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      timeoutMs
+    );
 
     try {
+
+      console.log(
+        `[GouNandi API] ${fetchInit.method || 'GET'} ${targetUrl}`
+      );
+
       const response = await fetch(targetUrl, {
         ...fetchInit,
-        signal: options.signal || controller.signal,
         headers,
+        signal: options.signal || controller.signal,
       });
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        let errBody: any = null;
-        try {
-          errBody = await response.json();
-        } catch {
-          // Non-JSON response
-        }
+      // ------------------------------------------------------
+      // PARSE RESPONSE
+      // ------------------------------------------------------
 
-        // Handle 401 Unauthorized for authenticated routes
-        if (response.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
+      const contentType =
+        response.headers.get('content-type') || '';
+
+      let data: any = null;
+
+      if (response.status !== 204) {
+        if (contentType.includes('application/json')) {
+          data = await response.json();
+        } else {
+          data = await response.text();
+        }
+      }
+
+      // ------------------------------------------------------
+      // HANDLE HTTP ERRORS
+      // ------------------------------------------------------
+
+      if (!response.ok) {
+
+        if (
+          response.status === 401 &&
+          !path.startsWith('/auth/login') &&
+          !path.startsWith('/auth/register')
+        ) {
           useAuthStore.getState().logout();
         }
 
-        const message = errBody?.detail || errBody?.message || `HTTP ${response.status}: ${response.statusText}`;
-        throw new ApiError(message, response.status, response.statusText, errBody);
+        const message =
+          data?.detail ||
+          data?.message ||
+          (typeof data === 'string' && data) ||
+          `HTTP ${response.status}: ${response.statusText}`;
+
+        throw new ApiError(
+          message,
+          response.status,
+          response.statusText,
+          data
+        );
       }
 
-      const data = await response.json();
+      console.log(
+        `[GouNandi API] Success: ${response.status}`
+      );
+
       return data as T;
-    } catch (err: any) {
+
+    } catch (error: any) {
+
       clearTimeout(timeoutId);
 
-      // If the error was a real HTTP response error (like 400, 401, 409 Conflict, 403, 404),
-      // DO NOT retry fallback URLs — throw the server's response immediately!
-      if (err instanceof ApiError && err.status > 0) {
-        throw err;
+      // Server returned a real HTTP error.
+      // Do not retry another URL.
+      if (error instanceof ApiError) {
+        throw error;
       }
 
-      lastError = err;
-      // Network failed on this candidate (e.g. Failed to fetch), try next candidate URL
+      // External abort should not trigger fallback requests.
+      if (options.signal?.aborted) {
+        throw error;
+      }
+
+      lastError = error;
+
+      console.error(
+        `[GouNandi API] Request failed: ${targetUrl}`,
+        error
+      );
+
+      // Retry only for network errors.
     }
   }
 
-  // If all candidate URLs failed with a network error
+  // ----------------------------------------------------------
+  // NETWORK ERROR
+  // ----------------------------------------------------------
+
   if (lastError?.name === 'AbortError') {
-    throw new ApiError(`Request to ${path} timed out after ${timeoutMs}ms`, 408, 'Request Timeout');
+    throw new ApiError(
+      `Request to ${path} timed out.`,
+      408,
+      'Request Timeout'
+    );
   }
 
   throw new ApiError(
-    'Unable to connect to GouNandi backend (Port 8000). Please ensure the FastAPI server is running.',
+    'Unable to connect to GouNandi backend. Please check Render service availability and API configuration.',
     0,
     'Network Error'
   );
 }
 
-export const apiClient = {
-  get: <T = any>(path: string, options?: RequestOptions) =>
-    apiRequest<T>(path, { ...options, method: 'GET' }),
+// ------------------------------------------------------------
+// API CLIENT METHODS
+// ------------------------------------------------------------
 
-  post: <T = any>(path: string, body?: any, options?: RequestOptions) =>
+export const apiClient = {
+
+  get: <T = any>(
+    path: string,
+    options?: RequestOptions
+  ) =>
+    apiRequest<T>(path, {
+      ...options,
+      method: 'GET',
+    }),
+
+  post: <T = any>(
+    path: string,
+    body?: any,
+    options?: RequestOptions
+  ) =>
     apiRequest<T>(path, {
       ...options,
       method: 'POST',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
     }),
 
-  put: <T = any>(path: string, body?: any, options?: RequestOptions) =>
+  put: <T = any>(
+    path: string,
+    body?: any,
+    options?: RequestOptions
+  ) =>
     apiRequest<T>(path, {
       ...options,
       method: 'PUT',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body:
+        body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
     }),
 
-  delete: <T = any>(path: string, options?: RequestOptions) =>
-    apiRequest<T>(path, { ...options, method: 'DELETE' }),
+  delete: <T = any>(
+    path: string,
+    options?: RequestOptions
+  ) =>
+    apiRequest<T>(path, {
+      ...options,
+      method: 'DELETE',
+    }),
 };

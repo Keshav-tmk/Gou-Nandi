@@ -59,14 +59,16 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleRestoreDefaults = () => {
-    const defaultUrl = 'http://127.0.0.1:8000';
+    const defaultUrl = import.meta.env.PROD
+      ? 'https://gou-nandi.onrender.com'
+      : 'http://127.0.0.1:8000';
     setInputUrl(defaultUrl);
     setApiBaseUrl(defaultUrl);
     setPollingIntervalMs(2000);
     setDemoMode(false);
     setSaveStatus({
       type: 'success',
-      message: 'Restored default settings (http://127.0.0.1:8000, 2s interval).',
+      message: `Restored default settings (${defaultUrl}, 2s interval).`,
     });
   };
 

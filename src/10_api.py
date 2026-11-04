@@ -33,7 +33,7 @@ from src.database import get_db, create_access_token, decode_access_token
 
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from src.ai.inference import get_ai_service, normalize_cow_id
@@ -346,8 +346,11 @@ app = FastAPI(
 
 )
 
-# CORS middleware for local Vite dev, mobile apps, and dashboard clients
+# CORS middleware for production domains and local development
 ALLOWED_ORIGINS = [
+    "https://gounandi.dpdns.org",
+    "http://gounandi.dpdns.org",
+    "https://gou-nandi.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
@@ -359,11 +362,13 @@ ALLOWED_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?|https://.*\.vercel\.app)$",
+    allow_origin_regex=r"^https?://(gounandi\.dpdns\.org|gou-nandi\.vercel\.app|.*\.vercel\.app|localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 
 # ============================================================
@@ -1036,7 +1041,9 @@ def health() -> Dict[str, Any]:
 
     return {
 
-        "status": health_status,
+        "status": "ok",
+
+        "readiness": health_status,
 
         "api_online": True,
 
@@ -1953,6 +1960,12 @@ def ai_lameness(
 # ============================================================
 # FARMER AUTHENTICATION & PROFILE ENDPOINTS
 # ============================================================
+
+@app.options("/auth/{path:path}")
+def auth_options_preflight(path: str) -> Response:
+    """Preflight handler ensuring OPTIONS /auth/* returns HTTP 200 without 405."""
+    return Response(status_code=status.HTTP_200_OK)
+
 
 @app.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register_farmer(payload: FarmerRegisterRequest) -> Dict[str, Any]:
