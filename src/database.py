@@ -198,6 +198,28 @@ class DatabaseManager:
             );
             """)
 
+            # 6. Persistent Telemetry Sensor Readings table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sensor_readings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cow_id TEXT NOT NULL,
+                device_id TEXT,
+                farmer_id TEXT,
+                timestamp TEXT NOT NULL,
+                received_at TEXT NOT NULL,
+                accel_x REAL,
+                accel_y REAL,
+                accel_z REAL,
+                gyro_x REAL,
+                gyro_y REAL,
+                gyro_z REAL,
+                temperature_c REAL,
+                raw_json TEXT
+            );
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_sensor_readings_cow ON sensor_readings(cow_id, received_at DESC);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_sensor_readings_time ON sensor_readings(received_at DESC);")
+
             conn.commit()
             logger.info("GouNandi database initialized at %s", self.db_path)
 
@@ -271,6 +293,12 @@ class DatabaseManager:
                 INSERT INTO device_mappings (device_id, cow_id, farmer_id, farm_id, is_active, created_at)
                 VALUES (?, ?, ?, ?, 1, ?)
                 """, (c[6], c[0], c[1], c[2], now_iso))
+
+            # Register standard ESP32-COLLAR-01 mapping for COW-001
+            cursor.execute("""
+            INSERT OR IGNORE INTO device_mappings (device_id, cow_id, farmer_id, farm_id, is_active, created_at)
+            VALUES (?, ?, ?, ?, 1, ?)
+            """, ("ESP32-COLLAR-01", "COW-001", "FARM_001", "FARM_LOC_001", now_iso))
 
             # 3. Demo Account / Academic Profile (Chiranthana K Kori)
             hash_demo, salt_demo = hash_password(default_pwd)
@@ -634,7 +662,138 @@ class DatabaseManager:
             WHERE device_id = ? OR cow_id = ?
             """, (clean_dev, clean_dev))
             row = cursor.fetchone()
-            return dict(row) if row else None
+            if row:
+                return dict(row)
+
+            # Known hardware alias for standard collar: ESP32-COLLAR-01 -> COW-001
+            if clean_dev.upper() in ("ESP32-COLLAR-01", "ESP32_COLLAR_01", "ESP32_001"):
+                return {
+                    "device_id": clean_dev,
+                    "cow_id": "COW-001",
+                    "farmer_id": "FARM_001",
+                    "farm_id": "FARM_LOC_001",
+                    "is_active": 1,
+                }
+            return None
+
+    # ============================================================
+    # SENSOR TELEMETRY PERSISTENCE OPERATIONS
+    # ============================================================
+
+    def insert_sensor_reading(
+        self,
+        cow_id: str,
+        device_id: Optional[str],
+        farmer_id: Optional[str],
+        timestamp: str,
+        received_at: str,
+        sensors: Dict[str, float],
+    ) -> int:
+        """Persist a single physical sensor reading from ESP32 into SQLite."""
+        norm_cow = cow_id.strip().upper()
+        ax = float(sensors.get("accel_x")) if sensors.get("accel_x") is not None else None
+        ay = float(sensors.get("accel_y")) if sensors.get("accel_y") is not None else None
+        az = float(sensors.get("accel_z")) if sensors.get("accel_z") is not None else None
+        gx = float(sensors.get("gyro_x")) if sensors.get("gyro_x") is not None else None
+        gy = float(sensors.get("gyro_y")) if sensors.get("gyro_y") is not None else None
+        gz = float(sensors.get("gyro_z")) if sensors.get("gyro_z") is not None else None
+        temp = sensors.get("temperature_c") if sensors.get("temperature_c") is not None else sensors.get("temp")
+        temp_c = float(temp) if temp is not None else None
+
+        raw_json = json.dumps(sensors)
+
+        with self._lock, self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            INSERT INTO sensor_readings (
+                cow_id, device_id, farmer_id, timestamp, received_at,
+                accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, temperature_c, raw_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                norm_cow, device_id, farmer_id, timestamp, received_at,
+                ax, ay, az, gx, gy, gz, temp_c, raw_json
+            ))
+            conn.commit()
+            return cursor.lastrowid
+
+    def get_latest_sensor_reading(self, cow_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Retrieve the latest sensor reading from SQLite, optionally filtered by cow_id."""
+        with self._lock, self.get_connection() as conn:
+            cursor = conn.cursor()
+            if cow_id:
+                norm_cow = cow_id.strip().upper()
+                cursor.execute("""
+                SELECT id, cow_id, device_id, farmer_id, timestamp, received_at,
+                       accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, temperature_c
+                FROM sensor_readings
+                WHERE cow_id = ? OR REPLACE(cow_id, '-', '') = REPLACE(?, '-', '')
+                ORDER BY id DESC
+                LIMIT 1
+                """, (norm_cow, norm_cow))
+            else:
+                cursor.execute("""
+                SELECT id, cow_id, device_id, farmer_id, timestamp, received_at,
+                       accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, temperature_c
+                FROM sensor_readings
+                ORDER BY id DESC
+                LIMIT 1
+                """)
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self._row_to_reading_dict(row)
+
+    def get_recent_sensor_readings(
+        self, cow_id: Optional[str] = None, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Retrieve recent sensor readings from SQLite in ascending chronological order."""
+        with self._lock, self.get_connection() as conn:
+            cursor = conn.cursor()
+            if cow_id:
+                norm_cow = cow_id.strip().upper()
+                cursor.execute("""
+                SELECT id, cow_id, device_id, farmer_id, timestamp, received_at,
+                       accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, temperature_c
+                FROM sensor_readings
+                WHERE cow_id = ? OR REPLACE(cow_id, '-', '') = REPLACE(?, '-', '')
+                ORDER BY id DESC
+                LIMIT ?
+                """, (norm_cow, norm_cow, limit))
+            else:
+                cursor.execute("""
+                SELECT id, cow_id, device_id, farmer_id, timestamp, received_at,
+                       accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, temperature_c
+                FROM sensor_readings
+                ORDER BY id DESC
+                LIMIT ?
+                """, (limit,))
+            rows = cursor.fetchall()
+            # Return in chronological order (oldest to newest) as expected by window analysis & charts
+            readings = [self._row_to_reading_dict(r) for r in reversed(rows)]
+            return readings
+
+    def _row_to_reading_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+        """Convert a sqlite3.Row from sensor_readings into the standard API dictionary format."""
+        sensors = {
+            "accel_x": row["accel_x"],
+            "accel_y": row["accel_y"],
+            "accel_z": row["accel_z"],
+            "gyro_x": row["gyro_x"],
+            "gyro_y": row["gyro_y"],
+            "gyro_z": row["gyro_z"],
+            "temperature_c": row["temperature_c"],
+        }
+        sensor_count = sum(1 for v in sensors.values() if v is not None)
+        return {
+            "id": row["id"],
+            "cow_id": row["cow_id"],
+            "device_id": row["device_id"],
+            "farmer_id": row["farmer_id"],
+            "timestamp": row["timestamp"],
+            "received_at": row["received_at"],
+            "sensors": sensors,
+            "sensor_count": sensor_count,
+        }
 
 
 # Global singleton database manager instance

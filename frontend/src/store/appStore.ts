@@ -73,36 +73,26 @@ function getInitialTheme(): AppTheme {
 function getInitialApiUrl(): string {
   const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 
-  // Production: prioritize the Vercel environment variable.
-  // Never fall back to localhost, relative URL, or outdated localStorage in production.
-  if (import.meta.env.PROD) {
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-      return envUrl.replace(/\/+$/, '');
+  // If in browser on localhost / 127.0.0.1, ALWAYS target the local backend
+  if (typeof window !== 'undefined') {
+    const isLocal =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === '0.0.0.0';
+    if (isLocal) {
+      if (window.location.port === '5173' || window.location.port === '8000') {
+        return '';
+      }
+      return 'http://127.0.0.1:8000';
     }
-    return PRODUCTION_API_URL;
   }
 
-  // Development: use previously saved API URL if available.
-  const saved = localStorage.getItem(
-    `${STORAGE_KEY_SETTINGS}_api_url`
-  );
-
-  if (saved && saved.trim()) {
-    return saved.trim().replace(/\/+$/, '');
+  // Production: prioritize the environment variable if available
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl.replace(/\/+$/, '');
   }
 
-  // Local Vite development server.
-  if (
-    typeof window !== 'undefined' &&
-    window.location.port === '5173'
-  ) {
-    return '';
-  }
-
-  return (
-    envUrl?.replace(/\/+$/, '') ||
-    'http://127.0.0.1:8000'
-  );
+  return PRODUCTION_API_URL;
 }
 
 // ============================================================

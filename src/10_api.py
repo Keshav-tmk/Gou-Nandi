@@ -13,15 +13,13 @@ ingestion endpoint for ESP32 sensor hardware.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-
 import json
-
 import logging
-
+import os
 from pathlib import Path
-
+import threading
 from typing import Any, Dict, List, Optional
-
+import urllib.request
 import warnings
 
 import joblib
@@ -93,6 +91,52 @@ _latest_sensor_reading: Optional[Dict[str, Any]] = None
 _sensor_readings_buffer: List[Dict[str, Any]] = []
 
 MAX_SENSOR_BUFFER_SIZE = 500
+
+# Hydrate in-memory buffer from SQLite on startup if available
+try:
+    _init_db = get_db()
+    _db_recent = _init_db.get_recent_sensor_readings(limit=MAX_SENSOR_BUFFER_SIZE)
+    if _db_recent:
+        _sensor_readings_buffer.extend(_db_recent)
+        _latest_sensor_reading = _db_recent[-1]
+        logger.info("Hydrated %d sensor readings from persistent SQLite store into memory buffer.", len(_db_recent))
+except Exception as _hydr_exc:
+    logger.debug("Could not hydrate startup buffer from DB: %s", _hydr_exc)
+
+# Cloud Relay Configuration (syncs local ESP32 telemetry to Render)
+IS_RENDER = os.environ.get("RENDER") is not None or os.environ.get("RENDER_EXTERNAL_HOSTNAME") is not None
+CLOUD_API_URL = os.environ.get("GOUNANDI_CLOUD_URL", "https://gou-nandi.onrender.com").rstrip("/")
+ENABLE_CLOUD_FORWARD = os.environ.get("FORWARD_TO_CLOUD", "1").lower() in ("1", "true", "yes")
+
+def _relay_reading_to_cloud(payload_dict: Dict[str, Any]) -> None:
+    """Non-blocking background sync from local environment to Render cloud backend."""
+    try:
+        req_data = json.dumps(payload_dict).encode("utf-8")
+        req = urllib.request.Request(
+            f"{CLOUD_API_URL}/sensor-data",
+            data=req_data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=3.0):
+            pass
+    except Exception:
+        pass
+
+def _relay_batch_to_cloud(payloads_list: List[Dict[str, Any]]) -> None:
+    """Non-blocking background sync for batch telemetry to Render cloud backend."""
+    try:
+        req_data = json.dumps(payloads_list).encode("utf-8")
+        req = urllib.request.Request(
+            f"{CLOUD_API_URL}/sensor-data/batch",
+            data=req_data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=4.0):
+            pass
+    except Exception:
+        pass
 
 # ============================================================
 
@@ -1572,19 +1616,25 @@ def calculate_live_window_features(records: List[Dict[str, Any]]) -> Dict[str, A
 
 
 @app.get("/sensor-data/latest")
+@app.get("/telemetry/latest")
 def latest_sensor_data(
     cow_id: Optional[str] = Query(default=None, min_length=1, max_length=64),
 ) -> Dict[str, Any]:
-    """Return the latest ESP32 reading received since this API process started, optionally filtered by cow."""
-    if cow_id is not None:
-        target_norm = normalize_cow_id(cow_id)
-        ai = get_ai_service()
+    """Return the latest ESP32 reading, querying in-memory buffer with persistent SQLite fallback."""
+    target_norm = normalize_cow_id(cow_id) if cow_id else None
+    ai = get_ai_service()
+    db = get_db()
+    latest = None
+
+    if target_norm:
         latest = ai._cow_latest_reading.get(cow_id) or ai._cow_latest_reading.get(target_norm)
         if not latest:
             for rec in reversed(_sensor_readings_buffer):
                 if rec.get("cow_id") == cow_id or normalize_cow_id(rec.get("cow_id")) == target_norm:
                     latest = rec
                     break
+        if not latest:
+            latest = db.get_latest_sensor_reading(cow_id=target_norm)
         if latest is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -1592,28 +1642,48 @@ def latest_sensor_data(
             )
         return {"status": "success", "cow_id": cow_id, "reading": latest}
 
-    if _latest_sensor_reading is None:
+    if _latest_sensor_reading is not None:
+        latest = _latest_sensor_reading
+    else:
+        latest = db.get_latest_sensor_reading()
+
+    if latest is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No ESP32 sensor readings have been received since the API started.",
+            detail="No ESP32 sensor readings have been received.",
         )
-    return {"status": "success", "reading": _latest_sensor_reading}
+    return {"status": "success", "reading": latest}
 
 
 @app.get("/sensor-data/recent")
+@app.get("/telemetry/recent")
 def recent_sensor_data(
     limit: int = Query(default=20, ge=1, le=500),
     cow_id: Optional[str] = Query(default=None, min_length=1, max_length=64),
 ) -> Dict[str, Any]:
-    """Return recent buffered readings, optionally filtered by cow ID."""
+    """Return recent sensor readings, querying persistent database with in-memory buffer fallback."""
+    db = get_db()
+    target_norm = normalize_cow_id(cow_id) if cow_id else None
+
+    # 1. Query persistent SQLite database first
+    db_readings = db.get_recent_sensor_readings(cow_id=target_norm, limit=limit)
+    if db_readings:
+        return {
+            "status": "success",
+            "count": len(db_readings),
+            "limit": limit,
+            "cow_id_filter": cow_id,
+            "readings": db_readings,
+            "source": "database",
+        }
+
+    # 2. Fallback to in-memory buffer if database is empty
     records = _sensor_readings_buffer
-    if cow_id is not None:
-        target_norm = normalize_cow_id(cow_id)
+    if target_norm is not None:
         matched = [
             record for record in records
             if record.get("cow_id") == cow_id or normalize_cow_id(record.get("cow_id")) == target_norm
         ]
-        # Cross-cow fallback removed to prevent data leakage
         records = matched
     selected = records[-limit:]
     return {
@@ -1622,7 +1692,7 @@ def recent_sensor_data(
         "limit": limit,
         "cow_id_filter": cow_id,
         "readings": selected,
-        "note": "This in-memory buffer resets when the API process restarts.",
+        "source": "in_memory_buffer",
     }
 
 
@@ -1639,8 +1709,10 @@ def live_sensor_window_features(
             record for record in records
             if record.get("cow_id") == cow_id or normalize_cow_id(record.get("cow_id")) == target_norm
         ]
-        # Cross-cow fallback removed to prevent data leakage
         records = matched
+    if not records:
+        db = get_db()
+        records = db.get_recent_sensor_readings(cow_id=cow_id, limit=window_size)
     selected = records[-window_size:]
     if not selected:
         raise HTTPException(
@@ -1656,19 +1728,13 @@ def live_sensor_window_features(
 
 
 @app.post("/sensor-data", status_code=status.HTTP_201_CREATED)
-
-def ingest_sensor_data(payload: ESPSensorPayload) -> Dict[str, Any]:
-
+def ingest_sensor_data(payload: ESPSensorPayload, relay_cloud: bool = True) -> Dict[str, Any]:
     """Ingest genuine sensor readings from ESP32 collar hardware.
 
     Validates identifiers, timestamps, and sensor numeric values.
-
-    Buffers the latest readings and appends to persistent audit log.
-
+    Persists readings to SQLite database, rolling in-memory buffer, and audit log.
     Does not invent sensor data or make claims of clinical diagnosis.
-
     """
-
     global _latest_sensor_reading, _sensor_readings_buffer
 
     received_time = datetime.now(timezone.utc).isoformat()
@@ -1692,42 +1758,58 @@ def ingest_sensor_data(payload: ESPSensorPayload) -> Dict[str, Any]:
         "sensor_count": len(payload.sensors),
     }
 
-    # Store latest reading in memory
-
+    # 1. Store latest reading in memory
     _latest_sensor_reading = record
-
     _sensor_readings_buffer.append(record)
-
     if len(_sensor_readings_buffer) > MAX_SENSOR_BUFFER_SIZE:
-
         _sensor_readings_buffer.pop(0)
 
-    # Persist reading to append-only JSONL log
-
+    # 2. Persist reading to SQLite database
     try:
+        db.insert_sensor_reading(
+            cow_id=target_cow_id,
+            device_id=payload.device_id,
+            farmer_id=farmer_id,
+            timestamp=payload.timestamp,
+            received_at=received_time,
+            sensors=payload.sensors,
+        )
+    except Exception as db_exc:
+        logger.error("Failed to persist sensor reading to SQLite: %s", db_exc)
 
+    # 3. Persist reading to append-only JSONL log
+    try:
         OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
-
         with SENSOR_LOG_PATH.open("a", encoding="utf-8") as f:
-
             f.write(json.dumps(record) + "\n")
-
     except OSError as exc:
-
         logger.error("Failed to append sensor reading to log: %s", exc)
 
-    # Ingest into real-time AI service buffer for per-cow rolling inference
+    # 4. Ingest into real-time AI service buffer for per-cow rolling inference
     try:
         get_ai_service().ingest_reading(record)
     except Exception as ai_exc:
         logger.warning("Could not buffer reading in AI service: %s", ai_exc)
+
+    # 5. Mirror to cloud if running locally and cloud relay is enabled
+    if relay_cloud and not IS_RENDER and ENABLE_CLOUD_FORWARD:
+        threading.Thread(
+            target=_relay_reading_to_cloud,
+            args=({
+                "cow_id": target_cow_id,
+                "device_id": payload.device_id,
+                "timestamp": payload.timestamp,
+                "sensors": payload.sensors,
+            },),
+            daemon=True,
+        ).start()
 
     logger.info("Ingested ESP32 reading from %s (%s) with %d sensors",
                 payload.cow_id, payload.device_id, len(payload.sensors))
 
     return {
         "status": "success",
-        "message": "Sensor reading recorded successfully.",
+        "message": "Sensor reading recorded and persisted successfully.",
         "cow_id": payload.cow_id,
         "device_id": payload.device_id,
         "received_at": received_time,
@@ -1798,8 +1880,24 @@ def ingest_sensor_data_batch(payloads: List[ESPSensorPayload]) -> Dict[str, Any]
         )
     count = 0
     for item in payloads:
-        ingest_sensor_data(item)
+        ingest_sensor_data(item, relay_cloud=False)
         count += 1
+
+    if not IS_RENDER and ENABLE_CLOUD_FORWARD:
+        threading.Thread(
+            target=_relay_batch_to_cloud,
+            args=([
+                {
+                    "cow_id": p.cow_id,
+                    "device_id": p.device_id,
+                    "timestamp": p.timestamp,
+                    "sensors": p.sensors,
+                }
+                for p in payloads
+            ],),
+            daemon=True,
+        ).start()
+
     return {
         "status": "success",
         "message": f"Successfully ingested {count} sensor readings.",

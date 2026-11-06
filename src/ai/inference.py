@@ -871,6 +871,24 @@ class AIInferenceService:
             buffer = self._cow_sensor_buffers.get(cow_id) or self._cow_sensor_buffers.get(norm_cow)
             buffer_len = len(buffer) if buffer else 0
 
+        # If in-memory buffer is empty, hydrate from persistent SQLite database
+        if not latest_reading or buffer_len == 0:
+            try:
+                from src.database import get_db
+                db = get_db()
+                db_readings = db.get_recent_sensor_readings(norm_cow, limit=MAX_READINGS_PER_COW)
+                if db_readings:
+                    self.ingest_batch(db_readings)
+                    with self._lock:
+                        latest_reading = self._cow_latest_reading.get(norm_cow)
+                        buffer = self._cow_sensor_buffers.get(norm_cow)
+                        buffer_len = len(buffer) if buffer else 0
+                    freshness = self.get_cow_freshness(norm_cow, stale_threshold_sec=stale_threshold_sec)
+                    hw_status = freshness["status"]
+                    is_stale = freshness["is_stale"]
+            except Exception as _db_h_exc:
+                logger.debug("Could not hydrate cow buffer from database: %s", _db_h_exc)
+
         sensor_values = {
             "accel_x": None,
             "accel_y": None,

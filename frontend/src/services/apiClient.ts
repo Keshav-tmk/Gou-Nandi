@@ -15,34 +15,39 @@ import { useAuthStore } from '../store/authStore';
 export const PRODUCTION_API_URL = 'https://gou-nandi.onrender.com';
 
 export function getEffectiveApiBaseUrl(): string {
-  const isProd = import.meta.env.PROD;
-  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '');
+  const isBrowser = typeof window !== 'undefined';
+  const isLocalHost = isBrowser && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '0.0.0.0'
+  );
 
-  // 1. In Production (Vercel / live domain):
-  // Never fall back to localhost, 127.0.0.1, relative Vercel URLs, or stale dev localStorage
-  if (isProd) {
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-      return envUrl;
-    }
+  // 1. If running locally on development machine, ALWAYS use local backend
+  if (isLocalHost) {
     const storeUrl = useAppStore.getState().apiBaseUrl?.trim().replace(/\/+$/, '');
-    if (storeUrl && storeUrl.startsWith('https://') && !storeUrl.includes('localhost') && !storeUrl.includes('127.0.0.1')) {
+    if (storeUrl && (storeUrl.includes('localhost') || storeUrl.includes('127.0.0.1'))) {
       return storeUrl;
     }
-    return PRODUCTION_API_URL;
+    if (window.location.port === '5173' || window.location.port === '8000') {
+      return ''; // Use proxy or same-origin FastAPI
+    }
+    return 'http://127.0.0.1:8000';
   }
 
-  // 2. In Local Development:
-  if (envUrl) {
-    return envUrl;
-  }
+  // 2. If user explicitly configured an API URL in Settings store, respect it
   const storeUrl = useAppStore.getState().apiBaseUrl?.trim().replace(/\/+$/, '');
   if (storeUrl) {
     return storeUrl;
   }
-  if (typeof window !== 'undefined' && window.location.port === '5173') {
-    return '';
+
+  // 3. If build-time or runtime environment variable VITE_API_BASE_URL is provided
+  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '');
+  if (envUrl) {
+    return envUrl;
   }
-  return 'http://127.0.0.1:8000';
+
+  // 4. Remote production deployment (e.g. gounandi.dpdns.org)
+  return PRODUCTION_API_URL;
 }
 
 // ------------------------------------------------------------
